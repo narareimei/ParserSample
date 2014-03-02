@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 
 namespace ExpressionSample
@@ -11,19 +12,30 @@ namespace ExpressionSample
     {
     }
 
+    public enum NodeType
+    {
+        None = 0,
+        Operator,
+        Function,
+        Constant,
+        Item
+    };
+
     [TestFixture]
     public partial class Node
     {
+
+
         public string Expression;
         public Node Left = null;
         public Node Right = null;
-        public bool Function = false;
+        //public bool Function = false;
+        public NodeType Type = NodeType.None;
 
         // NUnit用
         public Node()
         {
         }
-
 
         public Node(string expression)
         {
@@ -33,25 +45,42 @@ namespace ExpressionSample
         public void Parse()
         {
             int pos = GetOperatorPosition((this.Expression));
-
-            if (pos >= 0)
+            if (pos == 0)
             {
-                this.Left = new Node(this.Expression.Substring(0, pos));
+                this.Left       = null;
+                this.Right      = new Node(this.Expression.Substring(pos + 1));
+                this.Right.Parse();
+                this.Expression = this.Expression[pos].ToString();
+                this.Type       = NodeType.Operator;
+            }else
+            if (pos > 0)
+            {
+                this.Left       = new Node(this.Expression.Substring(0, pos));
                 this.Left.Parse();
-                this.Right = new Node(this.Expression.Substring(pos+1));
+                this.Right      = new Node(this.Expression.Substring(pos+1));
                 this.Right.Parse();
                 this.Expression = this.Expression [ pos ].ToString();
+                this.Type       = NodeType.Operator;
             }
             else
             {
                 if (IsFunction(this.Expression) == true)
                 {
                     // 関数オペランドを左要素とする
-                    this.Left = new Node(System.Text.RegularExpressions.Regex.Replace(Expression, @"^(SUM|AVG)\((.+)\)$", "$2"));
+                    this.Left = new Node(Regex.Replace(Expression, @"^(SUM|AVG)\((.+)\)$", "$2"));
                     this.Left.Parse();
                     // 関数名だけをExpressionとして保存する。本当は属性を何か持ちたい
-                    this.Expression = ( new System.Text.RegularExpressions.Regex(@"^SUM|AVG") ).Match(this.Expression).ToString();
-                    this.Function = true;
+                    this.Expression = (new Regex(@"^SUM|AVG")).Match(this.Expression).ToString();
+                    this.Type = NodeType.Function;
+                }
+                else
+                {
+                    if((new Regex(@".*[^0-9].*")).IsMatch(this.Expression) )
+                    {
+                        this.Type   = NodeType.Item;
+                    }else{
+                        this.Type   = NodeType.Constant;
+                    }
                 }
             }
             return;
@@ -148,5 +177,50 @@ namespace ExpressionSample
             return System.Text.RegularExpressions.Regex.IsMatch(expression.Trim(), @"^[a-zA-Z]+\(.+\)$");
         }
 
+        public int Compute()
+        {
+            var ans = 0;
+
+            if (this.Expression == null)
+            {
+                return ans;
+            }
+
+            if (this.Left != null)
+            {
+                ans = this.Left.Compute();
+            }
+
+            if (this.Expression == "-")
+            {
+                ans -= this.Right.Compute();
+            }else
+            if (this.Expression == "+")
+            {
+                ans += this.Right.Compute();
+            }else
+            if (this.Expression == "/")
+            {
+                if (this.Right == null)
+                {
+                    throw new Exception("乗算ですが項が不足しています");
+                }
+                ans /= this.Right.Compute();
+            }
+            else
+            if (this.Expression == "*")
+            {
+                if (this.Right == null)
+                {
+                    throw new Exception("乗算ですが項が不足しています");
+                }
+                ans *= this.Right.Compute();
+            }else
+            {
+                ans = int.Parse(this.Expression);
+            }
+
+            return ans;
+        }
     }
 }
