@@ -10,18 +10,6 @@ namespace ExpressionSample
     [TestFixture]
     public partial class Node
     {
-        //[Test]
-        //public void hoge()
-        //{
-        //    var node = new Node("2+3");
-
-        //    node.Parse();
-        //    Assert.True(node.Left.Expression  == "2");
-        //    Assert.True(node.Right.Expression == "3");
-        //    Assert.True(node.Expression       == "+");
-        //}
-
-
         #region 演算子検索のテスト
         [Test]
         [TestCase("2+3", Result=1)]
@@ -250,72 +238,7 @@ namespace ExpressionSample
         }
         #endregion
 
-        [Test]
-        public void ツリーを追いかけてみる()
-        {
-            var node = new Node("2+(3+4)");
-
-            node.Parse();
-
-            //Console.WriteLine(node.Left.Expression + " ");
-            //Console.WriteLine(node.Expression + " ");
-            //Console.WriteLine(node.Right.Expression + " ");
-
-            PutElement(node);
-
-            return;
-        }
-
-        public void PutElement(Node node)
-        {
-            if(node == null)
-            {
-                return ;
-            }
-            if (node.Left != null)
-            {
-                PutElement(node.Left);
-            }
-            if (node.Right != null)
-            {
-                PutElement(node.Right);
-            }
-            if (node.Expression != null)
-            {
-                Console.WriteLine(node.Expression + " ");
-            }
-        }
-
-        public int GetElement(Node node)
-        {
-            if (node == null)
-            {
-                throw new Exception("ノードがNullです"); ;
-            }
-
-            // 1.左 演算子 右
-            // 2.子要素なし
-            // 3.
-
-            var leftValue = 0;
-            var rightValue = 0;
-
-            if (node.Left != null)
-            {
-                leftValue =  GetElement(node.Left);
-            }
-            if (node.Right != null)
-            {
-                rightValue = GetElement(node.Right);
-            }
-            if (node.Expression != null)
-            {
-                Console.WriteLine(node.Expression + " ");
-            }
-            return 0;
-        }
-
-
+        #region 計算
         [Test]
         [TestCase("1", Result = 1)]
         [TestCase("2", Result = 2)]
@@ -331,10 +254,50 @@ namespace ExpressionSample
             var node = new Node(expression);
 
             node.Parse();
-            var ans = node.Compute();
-
+            //var ans = node.Compute();
+            var ans = Node.Compute(node);
             return ans;
         }
+
+        [Test]
+        [TestCase("A+B", Result = 3)]
+        public int 計算_カラム(string expression)
+        {
+
+            var row = new Dictionary<string, int>() { { "A", 1 }, { "B", 2 } };
+            var tbl = new[]
+                {
+                    new Dictionary<string, int>() {{"A", 1}},
+                    new Dictionary<string, int>() {{"A", 2}},
+                    new Dictionary<string, int>() {{"A", 3}},
+                };
+
+            var node = new Node(expression);
+            node.Parse();
+            var ans = Node.Compute(node, row, tbl);
+            return ans;
+        }
+
+        [Test]
+        [TestCase("SUM(A)", Result = 6)]
+        [TestCase("SUM(A+B)", Result = 22)]
+        public int 計算_SUM(string expression)
+        {
+            var row = new Dictionary<string, int>() { { "X", 1 }, { "Y", 2 } };
+            var tbl = new[]
+                {
+                    new Dictionary<string, int>() {{"A", 1},{"B", 3}},
+                    new Dictionary<string, int>() {{"A", 2},{"B", 6}},
+                    new Dictionary<string, int>() {{"A", 3},{"B", 7}},
+                };
+
+            var node = new Node(expression);
+            node.Parse();
+            var ans = Node.Compute(node, row, tbl);
+            return ans;
+        }        
+        #endregion
+
     }
 }
 

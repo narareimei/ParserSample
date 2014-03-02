@@ -32,16 +32,18 @@ namespace ExpressionSample
         //public bool Function = false;
         public NodeType Type = NodeType.None;
 
-        // NUnit用
+        // NUnit用コンストラクタ
         public Node()
         {
         }
 
+        // コンストラクタ
         public Node(string expression)
         {
             this.Expression = RemoveBrackets(expression.Trim());
         }
 
+        // 解析
         public void Parse()
         {
             int pos = GetOperatorPosition((this.Expression));
@@ -172,55 +174,96 @@ namespace ExpressionSample
             return expression;
         }
 
+        /// <summary>
+        /// 関数型判定
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         static public bool IsFunction(string expression)
         {
             return System.Text.RegularExpressions.Regex.IsMatch(expression.Trim(), @"^[a-zA-Z]+\(.+\)$");
         }
 
-        public int Compute()
+
+         /// <summary>
+        /// 評価
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="row">親テーブルの一行</param>
+        /// <param name="tbl">テーブル</param>
+        /// <returns></returns>
+        static public int Compute(Node node, Dictionary<string, int> row = null, Dictionary<string, int> [] tbl = null)
         {
             var ans = 0;
 
-            if (this.Expression == null)
+            // 無効ノード
+            if (node.Expression == null || node.Type == NodeType.None)
             {
                 return ans;
             }
 
-            if (this.Left != null)
+            #region 特殊ケース
+            // 関数処理
+            if (node.Type == NodeType.Function)
             {
-                ans = this.Left.Compute();
+                return Node.sum(node.Left, tbl);
             }
 
-            if (this.Expression == "-")
+            // 行中のカラム指定
+            if (node.Type == NodeType.Item)
             {
-                ans -= this.Right.Compute();
-            }else
-            if (this.Expression == "+")
+                return row[node.Expression];
+            }           
+            #endregion
+
+
+            // 左要素の評価
+            if (node.Left != null)
             {
-                ans += this.Right.Compute();
-            }else
-            if (this.Expression == "/")
+                ans = Compute(node.Left, row);
+            }
+
+            // 演算子に応じて評価
+            if (node.Expression == "-")
             {
-                if (this.Right == null)
+                ans -= Compute(node.Right, row);
+            }
+            else if (node.Expression == "+")
+            {
+                ans += Compute(node.Right, row);
+            }
+            else if (node.Expression == "/")
+            {
+                if (node.Right == null)
                 {
                     throw new Exception("乗算ですが項が不足しています");
                 }
-                ans /= this.Right.Compute();
+                ans /= Compute(node.Right, row);
+            }
+            else if (node.Expression == "*")
+            {
+                if (node.Right == null)
+                {
+                    throw new Exception("乗算ですが項が不足しています");
+                }
+                ans *= Compute(node.Right, row);
             }
             else
-            if (this.Expression == "*")
             {
-                if (this.Right == null)
-                {
-                    throw new Exception("乗算ですが項が不足しています");
-                }
-                ans *= this.Right.Compute();
-            }else
-            {
-                ans = int.Parse(this.Expression);
+                ans = int.Parse(node.Expression);
             }
-
             return ans;
+        }
+
+        /// <summary>
+        /// 集合関数＞累計
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="dic"></param>
+        /// <returns></returns>
+        static public int sum(Node left, Dictionary<string, int>[] tbl)
+        {
+            return (from n in tbl select Node.Compute(left, n)).Sum();
         }
     }
 }
