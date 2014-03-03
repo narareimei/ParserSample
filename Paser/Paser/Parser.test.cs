@@ -387,6 +387,32 @@ namespace ExpressionSample
             }
         }
         #endregion
+
+        #region 計算_条件
+        [Test]
+        [TestCase("if(lt(1,2),10,100)", Result = 10)]
+        [TestCase("if(gt(1,2),10,100)", Result = 100)]
+        [TestCase("if(eq(1,2),10,100)", Result = 100)]
+        [TestCase("if(eq(2,2),10,100)", Result = 10)]
+        [TestCase("if(eq(1+1,2*1),5,100)", Result = 5)]
+        [TestCase("if(eq(1+1+1,2*1),5,100)", Result = 100)]
+        [TestCase("if(lt(X,Y),X*1000,Y*10)", Result = 20)]
+        public int 計算_if(string expression)
+        {
+            var row = new Dictionary<string, int>() { { "X", 4 }, { "Y", 2 } };
+            var tbl = new[]
+                {
+                    new Dictionary<string, int>() {{"A", 1},{"B", 3}},
+                    new Dictionary<string, int>() {{"A", 2},{"B", 6}},
+                    new Dictionary<string, int>() {{"A", 3},{"B", 7}},
+                };
+
+            var node = new Node(expression);
+
+            node.Parse();
+            return Node.Compute(node, row, tbl);
+        }        
+        #endregion
     }
 }
 

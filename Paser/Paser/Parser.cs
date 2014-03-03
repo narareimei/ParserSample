@@ -34,7 +34,7 @@ namespace ExpressionSample
         {
             functionDictionary = new Dictionary<string, string>()
             {
-                {"SUM",""},{"AVG",""},{"lt",""},
+                {"SUM",""},{"AVG",""},{"lt",""},{"eq",""},{"gt",""},{"if",""},
             };
 
             var matcher = "";
@@ -262,6 +262,22 @@ namespace ExpressionSample
                     return Node.lt(node.Left, node.Right, row, tbl);
                 }
                 else
+                if (node.Expression == "eq")
+                {
+                    return Node.eq(node.Left, node.Right, row, tbl);
+                }
+                else
+                if (node.Expression == "gt")
+                {
+                    return Node.gt(node.Left, node.Right, row, tbl);
+                }
+                else
+                if (node.Expression == "if")
+                {
+                    var nodes = GetArgumentNodes(node);
+                    return Node.iif( nodes, row, tbl);
+                }
+                else
                 {
                     throw new Exception("この関数は実装されていません（"+node.Expression+"）");
                 }
@@ -344,6 +360,66 @@ namespace ExpressionSample
                 return 0;
             }
         }
+        /// <summary>
+        /// 比較「＝」
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="tbl"></param>
+        /// <returns></returns>
+        static public int eq(Node left, Node right, Dictionary<string, int> row = null, Dictionary<string, int>[] tbl = null)
+        {
+            var leftVal = Node.Compute(left, row, tbl);
+            var rightVal = Node.Compute(right, row, tbl);
+
+            if (leftVal == rightVal)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        /// <summary>
+        /// 比較「＞」
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="tbl"></param>
+        /// <returns></returns>
+        static public int gt(Node left, Node right, Dictionary<string, int> row = null, Dictionary<string, int>[] tbl = null)
+        {
+            var leftVal = Node.Compute(left, row, tbl);
+            var rightVal = Node.Compute(right, row, tbl);
+
+            if (leftVal > rightVal)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// IF
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="tbl"></param>
+        /// <returns></returns>
+        static public int iif(Node [] nodes, Dictionary<string, int> row = null, Dictionary<string, int>[] tbl = null)
+        {
+            var condition = Node.Compute(nodes[0], row, tbl);
+            if (condition == 1)
+            {
+                return Node.Compute(nodes[1], row, tbl);
+            }
+            else
+            {
+                return Node.Compute(nodes[2], row, tbl);
+            }
+        }
+
 
         /// <summary>
         /// ツリー形式になっている関数の引数ノードを配列として返す
