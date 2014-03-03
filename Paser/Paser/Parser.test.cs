@@ -397,6 +397,12 @@ namespace ExpressionSample
         [TestCase("if(eq(1+1,2*1),5,100)", Result = 5)]
         [TestCase("if(eq(1+1+1,2*1),5,100)", Result = 100)]
         [TestCase("if(lt(X,Y),X*1000,Y*10)", Result = 20)]
+
+        [TestCase("if(and(lt(1,2),gt(2,1)), 50, 999)", Result = 50)]
+        [TestCase("if(and(lt(1,2),gt(1,1)), 50, 999)", Result = 999)]
+        [TestCase("if(or(lt(1,2),gt(1,1)) , 50, 999)", Result = 50)]
+        [TestCase("if(or(lt(3,3),gt(1,1)) , 50, 999)", Result = 999)]
+
         public int 計算_if(string expression)
         {
             var row = new Dictionary<string, int>() { { "X", 4 }, { "Y", 2 } };

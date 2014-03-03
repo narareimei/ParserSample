@@ -34,7 +34,7 @@ namespace ExpressionSample
         {
             functionDictionary = new Dictionary<string, string>()
             {
-                {"SUM",""},{"AVG",""},{"lt",""},{"eq",""},{"gt",""},{"if",""},
+                {"SUM",""},{"AVG",""},{"lt",""},{"eq",""},{"gt",""},{"if",""},{"and",""},{"or",""},
             };
 
             var matcher = "";
@@ -278,6 +278,18 @@ namespace ExpressionSample
                     return Node.iif( nodes, row, tbl);
                 }
                 else
+                if (node.Expression == "and")
+                {
+                    var nodes = GetArgumentNodes(node);
+                    return Node.and( nodes, row, tbl);
+                }
+                else
+                if (node.Expression == "or")
+                {
+                    var nodes = GetArgumentNodes(node);
+                    return Node.or( nodes, row, tbl);
+                }
+                else
                 {
                     throw new Exception("この関数は実装されていません（"+node.Expression+"）");
                 }
@@ -420,6 +432,37 @@ namespace ExpressionSample
             }
         }
 
+        /// <summary>
+        /// AND
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="tbl"></param>
+        /// <returns></returns>
+        static public int and(Node[] nodes, Dictionary<string, int> row = null, Dictionary<string, int>[] tbl = null)
+        {
+            foreach (var node in nodes)
+            {
+                if (Node.Compute(node, row, tbl) == 0)
+                    return 0;
+            }
+            return 1;
+        }
+
+        /// <summary>
+        /// OR
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="tbl"></param>
+        /// <returns></returns>
+        static public int or(Node[] nodes, Dictionary<string, int> row = null, Dictionary<string, int>[] tbl = null)
+        {
+            foreach (var node in nodes)
+            {
+                if (Node.Compute(node, row, tbl) == 1)
+                    return 1;
+            }
+            return 0;
+        }
 
         /// <summary>
         /// ツリー形式になっている関数の引数ノードを配列として返す
@@ -433,8 +476,11 @@ namespace ExpressionSample
             var node = root;
             while(true)
             {
+                // ２回目以降（子要素）が関数型の場合もそれを最後として登録する
                 if (node.Type == NodeType.Constant || node.Type == NodeType.Item ||
-                    ( node.Type == NodeType.Operator && node.Expression != ","))
+                    ( node.Type == NodeType.Operator && node.Expression != ",") ||
+                    ( node.Type == NodeType.Function && node != root)
+                    )
                 {
                     nodes.Add(node);
                     break;
