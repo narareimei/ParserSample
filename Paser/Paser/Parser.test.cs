@@ -225,16 +225,19 @@ namespace ExpressionSample
             var node = new Node("SUM(2,3)");
 
             node.Parse();
-            {
-                Assert.True(node.Left.Left.Expression  == "2");
-                Assert.True(node.Left.Expression       == ",");
-                Assert.True(node.Left.Right.Expression == "3");
+            //{
+            //    Assert.True(node.Left.Left.Expression  == "2");
+            //    Assert.True(node.Left.Expression       == ",");
+            //    Assert.True(node.Left.Right.Expression == "3");
 
-            }
+            //}
+            //Assert.True(node.Expression     == "SUM");
+            //Assert.True(node.Type           == NodeType.Function);
+            //Assert.True(node.Right          == null);
             Assert.True(node.Expression     == "SUM");
             Assert.True(node.Type           == NodeType.Function);
-            Assert.True(node.Right          == null);
-            return;
+            Assert.True(node.Left.Expression  == "2");
+            Assert.True(node.Right.Expression == "3");
         }
         #endregion
 
@@ -296,6 +299,20 @@ namespace ExpressionSample
             var ans = Node.Compute(node, row, tbl);
             return ans;
         }        
+        #endregion
+
+        #region 条件関数
+        [Test]
+        [TestCase("lt(1,2)", Result = 1)]
+        [TestCase("lt(1,1)", Result = 0)]
+        [TestCase("lt(2,1)", Result = 0)]
+        public int 条件_less(string expression)
+        {
+            var node = new Node(expression);
+            node.Parse();
+            return Node.Compute(node);
+        }
+
         #endregion
 
     }

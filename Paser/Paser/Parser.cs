@@ -29,7 +29,6 @@ namespace ExpressionSample
         public string Expression;
         public Node Left = null;
         public Node Right = null;
-        //public bool Function = false;
         public NodeType Type = NodeType.None;
 
         // NUnit用コンストラクタ
@@ -43,19 +42,26 @@ namespace ExpressionSample
             this.Expression = RemoveBrackets(expression.Trim());
         }
 
-        // 解析
+        /// <summary>
+        /// 式解析
+        /// </summary>
+        /// <remarks>再帰的に呼び出される</remarks>
         public void Parse()
         {
             int pos = GetOperatorPosition((this.Expression));
+
+            // 符号として+-が指定されるケース
             if (pos == 0)
             {
+                // TODO いきなり+-以外の演算子が出現したら異常
                 this.Left       = null;
                 this.Right      = new Node(this.Expression.Substring(pos + 1));
                 this.Right.Parse();
                 this.Expression = this.Expression[pos].ToString();
                 this.Type       = NodeType.Operator;
-            }else
-            if (pos > 0)
+            }
+            // 「項 演算子 項」のケース
+            else if (pos > 0)
             {
                 this.Left       = new Node(this.Expression.Substring(0, pos));
                 this.Left.Parse();
@@ -64,25 +70,50 @@ namespace ExpressionSample
                 this.Expression = this.Expression [ pos ].ToString();
                 this.Type       = NodeType.Operator;
             }
-            else
+            // 関数「Func(項・・・）」のケース
+            else if (IsFunction(this.Expression) == true)
             {
-                if (IsFunction(this.Expression) == true)
+                var functionDictionary = new Dictionary<string, string>()
                 {
-                    // 関数オペランドを左要素とする
-                    this.Left = new Node(Regex.Replace(Expression, @"^(SUM|AVG)\((.+)\)$", "$2"));
-                    this.Left.Parse();
-                    // 関数名だけをExpressionとして保存する。本当は属性を何か持ちたい
-                    this.Expression = (new Regex(@"^SUM|AVG")).Match(this.Expression).ToString();
-                    this.Type = NodeType.Function;
+                    {"SUM",""},{"AVG",""},{"lt",""},
+                };
+
+                // 関数名だけをExpressionとして保存する。本当は属性を何か持ちたい
+                var functionName = ( new Regex(@"^SUM|AVG|lt") ).Match(this.Expression).ToString();
+                if (functionDictionary.ContainsKey(functionName) == false)
+                {
+                    throw new Exception("サポートされていない関数名が指定されています（"+functionName+"）");
                 }
                 else
                 {
-                    if((new Regex(@".*[^0-9].*")).IsMatch(this.Expression) )
+                    // 一旦オペランド部を解析する
+                    var operandNode = new Node(Regex.Replace(Expression, @"^(SUM|AVG|lt)\((.+)\)$", "$2"));
+                    operandNode.Parse();
+
+                    // ２項の引数の場合
+                    if (operandNode.Expression == ",")
                     {
-                        this.Type   = NodeType.Item;
-                    }else{
-                        this.Type   = NodeType.Constant;
+                        this.Left  = operandNode.Left;
+                        this.Right = operandNode.Right;
                     }
+                    // １項の引数の場合
+                    else
+                    {
+                        this.Left = operandNode;
+                        this.Right = null;
+                    }
+                    this.Expression = functionName;
+                    this.Type       = NodeType.Function;
+                }
+            }
+            // 式を含まないケース
+            else
+            {
+                if((new Regex(@".*[^0-9].*")).IsMatch(this.Expression) )
+                {
+                    this.Type   = NodeType.Item;
+                }else{
+                    this.Type   = NodeType.Constant;
                 }
             }
             return;
@@ -126,7 +157,7 @@ namespace ExpressionSample
                         case ',':
                             if (ope == ',')
                             {
-                                continue;
+                                throw new Exception("カンマが２度記述されている（３項以上となっている）");
                             }
                             break;
                         case '*':
@@ -206,7 +237,19 @@ namespace ExpressionSample
             // 関数処理
             if (node.Type == NodeType.Function)
             {
-                return Node.sum(node.Left, tbl);
+                if (node.Expression == "SUM")
+                {
+                    return Node.sum(node.Left, tbl);
+                }
+                else
+                if (node.Expression == "lt")
+                {
+                    return Node.lt(node.Left, node.Right, row, tbl);
+                }
+                else
+                {
+                    throw new Exception("この関数は実装されていません（"+node.Expression+"）");
+                }
             }
 
             // 行中のカラム指定
@@ -264,6 +307,27 @@ namespace ExpressionSample
         static public int sum(Node left, Dictionary<string, int>[] tbl)
         {
             return (from n in tbl select Node.Compute(left, n)).Sum();
+        }
+
+        /// <summary>
+        /// 比較「＜」
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="tbl"></param>
+        /// <returns></returns>
+        static public int lt(Node left, Node right, Dictionary<string, int> row = null, Dictionary<string, int> [ ] tbl = null)
+        {
+            var leftVal  = Node.Compute(left,  row, tbl);
+            var rightVal = Node.Compute(right, row, tbl);
+
+            if (leftVal < rightVal)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
         }
     }
 }
