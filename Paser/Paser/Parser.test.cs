@@ -188,7 +188,7 @@ namespace ExpressionSample
             return;
         }
         [Test]
-        public void parse_関数()
+        public void parse_関数_１項_1()
         {
             var node = new Node("SUM(2)");
 
@@ -203,7 +203,23 @@ namespace ExpressionSample
             return;
         }
         [Test]
-        public void parse_関数2()
+        public void parse_関数_１項_2()
+        {
+            var node = new Node("SUM(-2)");
+
+            node.Parse();
+            Assert.True(node.Expression     == "SUM");
+            Assert.True(node.Type           == NodeType.Function);
+            Assert.True(node.Left.Expression    == "-");
+            {
+                Assert.True(node.Left.Left              == null);
+                Assert.True(node.Left.Right.Expression  == "2");
+            }
+            Assert.True(node.Right              == null);
+        }
+
+        [Test]
+        public void parse_関数_１項_3()
         {
             var node = new Node("SUM(2+3)");
 
@@ -219,25 +235,38 @@ namespace ExpressionSample
             Assert.True(node.Right          == null);
             return;
         }
+
         [Test]
-        public void parse_関数3()
+        public void parse_関数_２項()
         {
             var node = new Node("SUM(2,3)");
 
             node.Parse();
-            //{
-            //    Assert.True(node.Left.Left.Expression  == "2");
-            //    Assert.True(node.Left.Expression       == ",");
-            //    Assert.True(node.Left.Right.Expression == "3");
-
-            //}
-            //Assert.True(node.Expression     == "SUM");
-            //Assert.True(node.Type           == NodeType.Function);
-            //Assert.True(node.Right          == null);
             Assert.True(node.Expression     == "SUM");
             Assert.True(node.Type           == NodeType.Function);
             Assert.True(node.Left.Expression  == "2");
             Assert.True(node.Right.Expression == "3");
+        }
+        [Test]
+        public void parse_関数_３項()
+        {
+            var node = new Node("SUM(2,3+4,5)");
+
+            node.Parse();
+            Assert.True(node.Expression         == "SUM");
+            Assert.True(node.Type               == NodeType.Function);
+            Assert.True(node.Left.Expression    == "2");
+            Assert.True(node.Right.Expression  == ",");
+            {
+                Assert.True(node.Right.Left.Expression  == "+");
+                {
+                    Assert.True(node.Right.Left.Left.Expression  == "3");
+                    Assert.True(node.Right.Left.Right.Expression == "4");
+                }
+                Assert.True(node.Right.Right.Expression == "5");
+            }
+
+            var nodes = Node.GetArgumentNodes(node);
         }
         #endregion
 
@@ -312,9 +341,52 @@ namespace ExpressionSample
             node.Parse();
             return Node.Compute(node);
         }
-
         #endregion
 
+        #region 関数引数取得
+        [Test]
+        public void parse_関数引数取得1()
+        {
+            var node = new Node("SUM(2,3+4,5)");
+
+            node.Parse();
+            var nodes = Node.GetArgumentNodes(node);
+
+            Assert.True(nodes [ 0 ].Type        == NodeType.Constant);
+            Assert.True(nodes [ 0 ].Expression  == "2");
+            Assert.True(nodes [ 1 ].Type        == NodeType.Operator);
+            Assert.True(nodes [ 1 ].Expression  == "+");
+            {
+                Assert.True(nodes [ 1 ].Left.Expression     == "3");
+                Assert.True(nodes [ 1 ].Right.Expression    == "4");
+            }
+            Assert.True(nodes [ 2 ].Type        == NodeType.Constant);
+            Assert.True(nodes [ 2 ].Expression  == "5");
+        }
+        [Test]
+        public void parse_関数引数取得2()
+        {
+            var node = new Node("SUM(2,3+4,-5)");
+
+            node.Parse();
+            var nodes = Node.GetArgumentNodes(node);
+
+            Assert.True(nodes [ 0 ].Type        == NodeType.Constant);
+            Assert.True(nodes [ 0 ].Expression  == "2");
+            Assert.True(nodes [ 1 ].Type        == NodeType.Operator);
+            Assert.True(nodes [ 1 ].Expression  == "+");
+            {
+                Assert.True(nodes [ 1 ].Left.Expression     == "3");
+                Assert.True(nodes [ 1 ].Right.Expression    == "4");
+            }
+            Assert.True(nodes [ 2 ].Type        == NodeType.Operator);
+            Assert.True(nodes [ 2 ].Expression  == "-");
+            {
+                Assert.True(nodes [ 2 ].Left                == null);
+                Assert.True(nodes [ 2 ].Right.Expression    == "5");
+            }
+        }
+        #endregion
     }
 }
 

@@ -3,15 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 using NUnit.Framework;
 
 namespace ExpressionSample
 {
-    [TestFixture]
-    partial class Parser
-    {
-    }
-
     public enum NodeType
     {
         None = 0,
@@ -24,12 +20,35 @@ namespace ExpressionSample
     [TestFixture]
     public partial class Node
     {
-
-
         public string Expression;
         public Node Left = null;
         public Node Right = null;
+        public List<Node>  Nodes = new List<Node>();
         public NodeType Type = NodeType.None;
+        // 関数名辞書
+        static readonly private Dictionary<string, string> functionDictionary;
+        static readonly private string functionMatcher;
+
+        // 静的コンストラクタ
+        static Node()
+        {
+            functionDictionary = new Dictionary<string, string>()
+            {
+                {"SUM",""},{"AVG",""},{"lt",""},
+            };
+
+            var matcher = "";
+            foreach (var key in functionDictionary.Keys)
+            {
+                matcher += ( key + "|" );
+            }
+            if (matcher.Last() == '|')
+            {
+                matcher = matcher.Remove(matcher.Length-1);
+            }
+            functionMatcher = matcher;
+        }
+
 
         // NUnit用コンストラクタ
         public Node()
@@ -73,13 +92,8 @@ namespace ExpressionSample
             // 関数「Func(項・・・）」のケース
             else if (IsFunction(this.Expression) == true)
             {
-                var functionDictionary = new Dictionary<string, string>()
-                {
-                    {"SUM",""},{"AVG",""},{"lt",""},
-                };
-
                 // 関数名だけをExpressionとして保存する。本当は属性を何か持ちたい
-                var functionName = ( new Regex(@"^SUM|AVG|lt") ).Match(this.Expression).ToString();
+                var functionName = ( new Regex(@"^"+functionMatcher) ).Match(this.Expression).ToString();
                 if (functionDictionary.ContainsKey(functionName) == false)
                 {
                     throw new Exception("サポートされていない関数名が指定されています（"+functionName+"）");
@@ -87,10 +101,10 @@ namespace ExpressionSample
                 else
                 {
                     // 一旦オペランド部を解析する
-                    var operandNode = new Node(Regex.Replace(Expression, @"^(SUM|AVG|lt)\((.+)\)$", "$2"));
+                    var operandNode = new Node(Regex.Replace(Expression, @"^(" + functionMatcher +@")\((.+)\)$", "$2"));
                     operandNode.Parse();
 
-                    // ２項の引数の場合
+                    // 多項の引数の場合
                     if (operandNode.Expression == ",")
                     {
                         this.Left  = operandNode.Left;
@@ -157,7 +171,8 @@ namespace ExpressionSample
                         case ',':
                             if (ope == ',')
                             {
-                                throw new Exception("カンマが２度記述されている（３項以上となっている）");
+                                //throw new Exception("カンマが２度記述されている（３項以上となっている）");
+                                continue;
                             }
                             break;
                         case '*':
@@ -329,5 +344,33 @@ namespace ExpressionSample
                 return 0;
             }
         }
+
+        /// <summary>
+        /// ツリー形式になっている関数の引数ノードを配列として返す
+        /// </summary>
+        /// <param name="root"></param>
+        /// <returns></returns>
+        static public Node [ ] GetArgumentNodes(Node root)
+        {
+            var nodes = new List<Node>();
+
+            var node = root;
+            while(true)
+            {
+                if (node.Type == NodeType.Constant || node.Type == NodeType.Item ||
+                    ( node.Type == NodeType.Operator && node.Expression != ","))
+                {
+                    nodes.Add(node);
+                    break;
+                }
+                if (node.Left != null)
+                {
+                    nodes.Add(node.Left);
+                }
+                node = node.Right;
+            }
+            return nodes.ToArray();
+        }
+
     }
 }
