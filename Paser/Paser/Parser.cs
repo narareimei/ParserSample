@@ -322,7 +322,7 @@ namespace ExpressionSample
             {
                 if (node.Right == null)
                 {
-                    throw new Exception("乗算ですが項が不足しています");
+                    throw new Exception("除算ですが項が不足しています");
                 }
                 ans /= Compute(node.Right, row);
             }
